@@ -1,5 +1,20 @@
 // Testing new low cost/free API: Azure Function HTTP trigger.
 
+// DEBUG
+const myurl = "https://functionapp-testing-123-eubzfmg4evgvfud4.westus3-01.azurewebsites.net/api/HttpExample";
+  try {
+    const response = await fetch(myurl);
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+
+    const result = await response.text();
+    console.log(result);
+  } catch (error) {
+    console.error(error.message);
+  }
+//
+
 const myCanvas = document.getElementById("myCanvas");
 myCanvas.style.width = '800px';	// Works correctly (sized and scaled) after I added this.
 myCanvas.style.height = '200px';
