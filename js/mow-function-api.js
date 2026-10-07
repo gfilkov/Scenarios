@@ -1,5 +1,10 @@
 // Testing new low cost/free API: Azure Function HTTP trigger.
 
+// DEBUG
+const myurl = "https://functionapp-testing-123-eubzfmg4evgvfud4.westus3-01.azurewebsites.net/api/HttpExample";
+testUrl(myurl);
+//
+
 const myCanvas = document.getElementById("myCanvas");
 myCanvas.style.width = '800px';	// Works correctly (sized and scaled) after I added this.
 myCanvas.style.height = '200px';
@@ -181,4 +186,19 @@ function drawRasterLegacy(result, canvasId) {
 			ctx.fillRect(x, y, 1, 1);
 		}
 	}
+}
+
+// DEBUG
+async function testUrl(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+
+    const result = await response.text();
+    console.log(result);
+  } catch (error) {
+    console.error(error.message);
+  }
 }
