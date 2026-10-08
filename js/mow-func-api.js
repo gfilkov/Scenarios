@@ -15,7 +15,8 @@
 	// In a real scenario, you might adjust this or use a local endpoint.
 	// const baseUrl = 'https://quickchart.io/';   // quickchart.io/raster?text=... returns PNG
 	
-	const baseUrl = 'http://localhost:7031/api/';
+	//const baseUrl = 'http://localhost:7031/api/';
+	const baseUrl = 'https://mowapi-hvb7htbzgfeubfh0.canadacentral-01.azurewebsites.net/api/';
 	
 	const API_ENDPOINTS = {
 		raster:       `${baseUrl}raster?text=`,
