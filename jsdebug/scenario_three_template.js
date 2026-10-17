@@ -52,11 +52,6 @@ var gameWidth, gameHeight;
 // CHANGE: gameOver < 0: continue; gameOver == 0: stop; gameOver > 0: stop after delay (sec)
 var gameOver = -1;
 
-// MOW raster stuff
-var rasterCount = 0;
-var isRasterReady = false;
-
-
 // startButton => MoW_template.startScenario() => this.startShow()
 function startShow() {
     console.log("scenario_three_template::startShow()");

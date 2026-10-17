@@ -295,6 +295,7 @@ function startScenario() {
 	//// ### my poor-man sync has glitches. In some cases I get 'no raster' exception. Check (global) raster first!
 	if (!raster) {
 		alert('No raster yet. Please try again.');
+		window.location.reload();
 		return;
 	}
 

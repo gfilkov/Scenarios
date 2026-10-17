@@ -135,6 +135,7 @@ let focusX, focusY;	// focus point (infinity point the flock flies to)
 // let myMessage = "User Message";
 
 var raster;	// to be assigned in rasterReady()
+// NB: uses global rasterParams object (ShowRaster.js). Set other properties if/as needed.
 getRaster();	// ShowRaster.js => rasterReady()
 
 initAssets();

@@ -11,8 +11,10 @@ https://mowapi-hvb7htbzgfeubfh0.canadacentral-01.azurewebsites.net/api/Raster?te
 Legacy: (default: TTF)
 https://mowapi-hvb7htbzgfeubfh0.canadacentral-01.azurewebsites.net/api/Raster?text=PROBA%20PERA&type=TTF
 
-## GIT Pages
-Ensure your main page is named index.html
+GIT Pages
+(Ensure your main page is named index.html)
+
+https://gfilkov.github.io/Scenarios/
 
 = = = = =
 
@@ -22,3 +24,11 @@ https://mowapi-hvb7htbzgfeubfh0.canadacentral-01.azurewebsites.net/api/help
 
 http://localhost/THREE/mow-func-api.html
 - HTML test client
+
+= = = = =
+
+Test client and 1st ported scenarios (Birds - done) are published at:
+https://gfilkov.github.io/Scenarios/
+
+# NEXT: port and publish honey-bee; it has latest banner/trinkets creation pattern (for THREE.JS)
+When porting  other THREE scenarios, follow ported honey-bee example.

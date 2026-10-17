@@ -3,9 +3,11 @@ const apiUrl = "https://mowapi-hvb7htbzgfeubfh0.canadacentral-01.azurewebsites.n
 //const apiUrl = 'http://localhost:7031/api/TextToCoords';
 
 // Get raster; calc banner, density, target scale
-
+// MOW raster stuff
 var raster;
 var rasterSize;
+var rasterCount = 0;
+var isRasterReady = false;
 
 // 2-dim array of char centers
 var charCenters;
@@ -34,7 +36,6 @@ var scaleY = 1.0;
 // 'var' makes it globally visible:
 var urlParams;
 var rasterParams = getScenarioParams();
-var rasterSize;
 
 // parse URL params (GET params)
 // NB: java script cannot access params in POST request sent to server.
@@ -67,10 +68,12 @@ function getScenarioParams() {
 }
 
 // gets raster from API (new format, centered raster)
-async function getRaster() {
+// NB: global object rasterParams (above) should be ready now. Scene and Text filled with URL params, others null.
+// If scenario uses any other params, it should set rasterParams properties accordingly before calling getRaster()
+async function getRaster(callback) {
 	console.log("ShowRaster::getRaster()");
 	
-	fetchRasterFromApiAsyncNew({ api: apiUrl, param: rasterParams, callback: rasterReady }).then(result => {
+	fetchRasterFromApiAsyncNew({ api: apiUrl, param: rasterParams, callback: callback }).then(result => {
 
 		// DEBUG
 		console.log("=== RAW RESULT ===");
@@ -81,8 +84,11 @@ async function getRaster() {
 		console.log("Full result:", JSON.stringify(result).substring(0, 500));
 
 		rasterSize = result.Statistics.TextSize;
+		raster = result;
 
-		//callback(result);
+		callback(result);
+
+		return result;
 	});
 }
 
@@ -96,25 +102,25 @@ async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: ca
 	let url = `${api}?text=${encodeURIComponent(param.text)}`;
 	
 	if(param.align)
-		url += '&' + param.align;
+		url += '&align=' + param.align;
 		
 	if(param.type)
-		url += '&' + param.type;
+		url += '&type=' + param.type;
 		
 	if(param.fontFamily)
-		url += '&' + param.fontFamily;
+		url += '&fontFamily=' + param.fontFamily;
 		
 	if(param.fontSize)
-		url += '&' + param.fontSize;
+		url += '&fontSize=' + param.fontSize;
 	
 	if(param.canvasWidth)
-		url += '&' + param.canvasWidth;
+		url += '&canvasWidth=' + param.canvasWidth;
 		
 	if(param.canvasHeightv)
-		url += '&' + param.canvasHeight;
+		url += '&canvasHeight=' + param.canvasHeight;
 	
 	if(param.step)
-		url += '&' + param.step;
+		url += '&step=' + param.step;
 
 	let result;
 	try {
@@ -130,239 +136,24 @@ async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: ca
 	return result;
 }
 
-// ### REMOVE:
-
-
-
 
 // DEBUG
 var rad = 4;
 
-//////////////////
-// fetch from PlayHandler (poor man API) if missing in sessionStorage
-
-// NB: no debugging coud help me to trace crazy async tricks :(
-// "It works by miracle, don't touch it"
-async function getRaster__() {
-	console.log("ShowRaster::getRaster()");
-
-	let pword = urlParams.get('text');
-	let sword = sessionStorage.getItem("Word");
-	let ret = sessionStorage.getItem("Raster");
-
-	// there is raster for this Word in the storage, reuse it
-	// # NB: typeof ret == "string"; ret == "undefined"
-//	if (typeof ret !== "undefined" && null != ret && pword == sword) {
-	if (ret !== "undefined" && null != ret && pword == sword) {
-		raster = JSON.parse(ret);
-		let rs = sessionStorage.getItem("RasterSize");
-		rasterSize = JSON.parse(rs);
-
-		rasterReady(pword);
-	}
-	else {
-		// this alert shows the object; when it is too late, on return from scenario
-		// testload().then(result => { raster = JSON.parse(result); done = true});
-
-		// fetchRasterAsync().then(result => { raster = result.raster; rasterSize = result.size; rasterReady() });
-
-		fetchRasterAsync().then(result => {
-			raster = result.raster;
-			rasterSize = result.size;
-
-			sessionStorage.setItem("Raster", JSON.stringify(raster));
-			sessionStorage.setItem("RasterSize", JSON.stringify(rasterSize));
-			sessionStorage.setItem("Word", pword);
-
-			// the call is async! Do not move rasterReady() out of IF clause.
-			rasterReady(pword);
-
-			// DEBUG
-			console.log("Raster: " + JSON.stringify(raster));
-			console.log("RasterSize: " + JSON.stringify(rasterSize));
-		});
-	}
-}
-
-async function fetchRasterAsync__() {
-	console.log("ShowRaster::fetchRasterAsync()");
-
-	let url = window.location.href.toLowerCase();
-//	let pos = url.indexOf('/view');
-	let pos = url.indexOf('/capture');	// test capture/ folder
-	url = url.substring(0, pos);
-	url += '/scenario.play';
-
-	// let scenariodata = { text: word, scenario: scenario, ttf: ttf};
-	let scenariodata = { text: word, scenario: scenario, type: type};
-
-	/* How to pass SearchParams:
-	var testurl = new URL(url),
-		params = { lat: 35.696233, long: 139.570431 }
-	Object.keys(params).forEach(key => testurl.searchParams.append(key, params[key]))
-	*/
-
-	try {
-		// let response = await fetch(testurl, {
-		let response = await fetch(url, {
-			method: 'POST',
-			body: JSON.stringify(scenariodata)
-		});
-		return await response.json();
-	} catch (e) {
-		return e.message;
-	}
-}
-
-//////////////////
-// Raster API (implemented on 20/06/2020)
-// Params in URL:
-// text, type (led1, led2, ttf),  slicing (None, Char, Line), alignment	(Center, Left, Right)
-// spacing (for LED: int; default: 2)
-// 1st option - default
-async function getRasterFromApi__(text, type, slicing, alignment, fontsize, spacing) {
-	if (null == text)
-		throw ('Parameter Text is required');
-
-	fetchRasterFromApiAsync(text, type, slicing, alignment, fontsize, spacing).then(result => {
-		raster = result.raster;
-		rasterSize = result.size;
-
-		sessionStorage.setItem("Raster", JSON.stringify(raster));
-		sessionStorage.setItem("RasterSize", JSON.stringify(rasterSize));
-
-		rasterReady(text);
-	});
-}
-// usage: getRasterFromApiNew({text: 'blah-blah', spacing: 3});
-async function getRasterFromApiNew__({ text, type, slicing, alignment, fontsize, spacing }) {
-	if (!text)
-		throw ('Parameter Text is required');
-
-	fetchRasterFromApiAsyncNew({ text, type, slicing, alignment, fontsize, spacing }).then(result => {
-		raster = result.raster;
-		rasterSize = result.size;
-
-		sessionStorage.setItem("Raster", JSON.stringify(raster));
-		sessionStorage.setItem("RasterSize", JSON.stringify(rasterSize));
-
-		rasterReady(text, result);
-	});
-}
-
-async function fetchRasterFromApiAsync__(text, type, slicing, alignment, fontsize, spacing) {
-	console.log("ShowRaster::fetchRasterFromApiAsync()");
-
-	// assuming that virtual direcctory might be either 'mowtestweb' or ''
-	// http://localhost/MoWtestWeb/View/_test.html
-	// http://mowtestweb.azurewebsites.net/View/_test.html
-
-	let url = window.location.origin;	// normal
-	// let url = "http://localhost";		// DEBUG
-	// let url = "http://mowtestweb.azurewebsites.net";	// DEBUG
-
-	if (window.location.pathname.toLowerCase().startsWith("/mowtestweb"))
-		url += "/mowtestweb";
-
-	url += '/api/raster?text=' + text;
-
-	if (type) {
-		url += '&type=' + type;
-    }
-	if (slicing) {
-		url += '&slicing=' + slicing;
-	}
-	if (alignment) {
-		url += '&alignment=' + alignment;
-	}
-	if (fontsize) {
-		url += '&fontsize=' + fontsize;
-	}
-	if (spacing) {
-		url += '&spacing=' + spacing;
-	}
-
-	try {
-		let response = await fetch(url);
-		return await response.json();
-	} catch (e) {
-		return e.message;
-	}
-}
-
-async function fetchRasterFromApiAsyncNew__({ text, type, slicing, alignment, fontsize, spacing }) {
-	console.log("ShowRaster::fetchRasterFromApiAsyncNew()");
-
-	// assuming that virtual direcctory might be either 'mowtestweb' or ''
-	// http://localhost/MoWtestWeb/View/_test.html
-	// http://mowtestweb.azurewebsites.net/View/_test.html
-
-	let url = window.location.origin;	// normal
-	// let url = "http://localhost";		// DEBUG
-	// let url = "http://mowtestweb.azurewebsites.net";	// DEBUG
-
-	if (window.location.pathname.toLowerCase().startsWith("/mowtestweb"))
-		url += "/mowtestweb";
-
-	url += '/api/raster?text=' + text;
-
-	if (type) {
-		url += '&type=' + type;
-	}
-	if (slicing) {
-		url += '&slicing=' + slicing;
-	}
-	if (alignment) {
-		url += '&alignment=' + alignment;
-	}
-	if (fontsize) {
-		url += '&fontsize=' + fontsize;
-	}
-	if (spacing) {
-		url += '&spacing=' + spacing;
-	}
-
-	try {
-		let response = await fetch(url);
-		return await response.json();
-	} catch (e) {
-		return e.message;
-	}
-}
-
-//////////////////
-
-
-// get from storage
-function getRasterSz() {
-	console.log("ShowRaster::getRasterSz()");
-
-	// var sz = document.getElementById('hdnRasterSize');
-	var sz = sessionStorage.getItem("RasterSize");
-	let rastersize = JSON.parse(sz);
-	return rastersize;
-}
-
 // Init raster on (Canvas 2D) context
-// getRaster() may be called before, as necessary. Check if it is already defined.
+// getRaster() must be called before. Check if it is already defined.
 // rectangles: Rectangle(left, right, top, bottom)
 // input setting - % of canvas size.
 function InitRaster(ctx, rcInput, show = false) {
 	console.log("ShowRaster::InitRaster()");
 
-	// raster = JSON.parse(data).raster;
-	// rasterSize = getRasterSize(raster);
-	if (typeof raster === "undefined") {
-		raster = getRaster();
-    }
-
-	if (null == raster) {
+	if (!raster) {
 		stopShow();
 		return;
 	}
 
 	if (null == rasterSize) {
-		rasterSize = getRasterSz(raster);
+		rasterSize = result.Statistics.TextSize;
 	}
 
 	/*
@@ -410,7 +201,7 @@ function InitRaster(ctx, rcInput, show = false) {
 function mapRaster() {
 	console.log("ShowRaster::mapRaster()");
 
-	for (var i = 0; i < raster.length; i++) {
+	for (var i = 0; i < rasterSize; i++) {
 		for (var j = 0; j < raster[i].length; j++) {
 			raster[i][j].X *= scaleX;
 			raster[i][j].X += rcBanner.left;
@@ -425,9 +216,9 @@ function mapRaster() {
 function getCharCenters(raster) {
 	console.log("ShowRaster::getCharCenters()");
 
-	var centers = new Array(raster.length);
+	var centers = new Array(rasterSize);
 	
-	for (var i = 0; i < raster.length; i++)
+	for (var i = 0; i < rasterSize; i++)
 	{
 		var x = 0;
 		var y = 0;
@@ -452,7 +243,7 @@ function getCharCenters(raster) {
 function drawRaster(ctx, raster, r, color) {
 	console.log("ShowRaster::drawRaster()");
 
-	for (var i = 0; i < raster.length; i++)
+	for (var i = 0; i < rasterSize; i++)
 	{
 		for(var j = 0; j < raster[i].length; j++)
 		{
@@ -475,20 +266,7 @@ function drawCharCenters(ctx, charCenters, r, color) {
 function getRasterSize(raster) {
 	console.log("ShowRaster::getRasterSize()");
 
-	var xmax = 0;
-	var ymax = 0;
-	for (var i = 0; i < raster.length; i++) {
-		for (var j = 0; j < raster[i].length; j++) {
-			if (raster[i][j].X > xmax)
-				xmax = raster[i][j].X;
-			if (raster[i][j].Y > ymax)
-				ymax = raster[i][j].Y;
-		}
-	}
-	return {
-		w: xmax,
-		h: ymax
-	};
+	return raster.Statistics.TextSize;
 }
 
 function getBanner(rcScaled, rastersize) {
@@ -650,7 +428,7 @@ function mapRasterContain(bannerX, bannerY, bannerWidth, bannerHeight, raster, r
 
 	var mapped = [];
 
-	for (i = 0; i < raster.length; i++) {
+	for (i = 0; i < rasterSize; i++) {
 		var subarray = [];
 		for (j = 0; j < raster[i].length; j++) {
 			let pnt = new Object();
@@ -761,13 +539,14 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	rcText = new Rectangle(textL, textR, textT, textB);
 
 	// - calc step (between target points)
-	bannerStep = rcText.w / rasterSize.Width;
+	// bannerStep = rcText.w / rasterSize.Width;	// raster step not accounted for, too sparce
+	bannerStep = rcText.w / rasterSize.Width / raster.Statistics.Step;
 
 	// - calc target item diameter = density*step
 	let targetD = density * bannerStep;
 
-	let left = textL;	// to be used for target points calculation. May be rescaled/recalculated.
-	let top = textT;
+	//let left = textL;	// to be used for target points calculation. May be rescaled/recalculated.
+	//let top = textT;
 
 	//// DEBUG
 	console.log("rcText:", rcText, "bannerStep:", bannerStep, "targetD:", targetD);
@@ -793,10 +572,11 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 		bannerStep = targetD / density;
 
 		// recon from center. Actual scaled text size:
-		bannerResizedW = rasterSize.Width * bannerStep;		// global vars for client script to check
-		bannerResizedH = rasterSize.Height * bannerStep;
-		left = rcBanner.center.x - bannerResizedW / 2;
-		top = rcBanner.center.y - bannerResizedH / 2;
+		//bannerResizedW = rasterSize.Width * bannerStep;		// global vars for client script to check
+		//bannerResizedH = rasterSize.Height * bannerStep;
+
+		bannerResizedW = rasterSize.Width * bannerStep / raster.Statistics.Step;		// global vars for client script to check
+		bannerResizedH = rasterSize.Height * bannerStep / raster.Statistics.Step;
 
 		//// DEBUG
 		console.log("Rescaled! bannerStep:", bannerStep, "targetD:", targetD, "targetScale:", targetScale, "quad:", bannerResizedW, "x", bannerResizedH);
@@ -804,12 +584,16 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	}
 
 	var mapped = [];
-	for (i = 0; i < raster.length; i++) {
+
+	// rpoint: raster.Characters[i].Coordinates[j]
+
+	for (i = 0; i < raster.Characters.length; i++) {
 		var subarray = [];
-		for (j = 0; j < raster[i].length; j++) {
+		for (j = 0; j < raster.Characters[i].Coordinates.length; j++) {
+			let rp = raster.Characters[i].Coordinates[j];
 			let pnt = new Object();
-			pnt.X = raster[i][j].X * bannerStep + left;
-			pnt.Y = raster[i][j].Y * bannerStep + top;
+			pnt.X = rp.X * bannerStep / raster.Statistics.Step;
+			pnt.Y = rp.Y * bannerStep / raster.Statistics.Step;
 
 			subarray.push(pnt);
 		}
@@ -818,6 +602,31 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 
 	return mapped;
 }
+
+///////////// ### TEST
+// Callback param: rpoint: raster.Characters[i].Coordinates[j]
+function forEachRasterPoint(raster, callback) {
+	for (let i = 0; i < raster.Characters.length; i++) {
+		const coords = raster.Characters[i].Coordinates;
+		for (let j = 0; j < coords.length; j++) {
+			const pnt = coords[j];
+			callback({ X: pnt.X, Y: pnt.Y, iChar: i, iPoint: j, iLine: pnt.LineIndex});
+		}
+	}
+}
+
+function myTestFunc(raster) {
+	let chars = [];
+	function myCallback(rchar) {
+		chars.push(rchar.Character);
+	}
+	forEachRasterPoint(raster, myCallback);
+	return chars;
+}
+
+/*let test = myTestFunc(raster);*/
+
+/////////////
 
 // DEBUG
 //function showTextRect(rect, pos) {

@@ -95,8 +95,8 @@ class ShareManager {
             try {
                 await navigator.share({
                     files: [file],
-                    title: 'MoW Unity Recording',
-                    text: 'Check out this MoW Unity recording: ' + this.filename
+                    title: 'MoW Scenario Recording',
+                    text: 'Check out this MoW Scenario recording: ' + this.filename
                 });
             } catch (error) {
                 const msg = `Sharing cancelled or failed: ${error}`
