@@ -600,29 +600,6 @@ function getBaseSpeed(wind) {
 
 //#endregion SCENARIO SPECIFIC
 
-// helpers
-function assetProgress(progress, total) {
-	var pBar = document.getElementById('progress-bar');
-	if (null === pBar)
-		return;
-	pBar.value = progress / total;
-	document.getElementById('progress-rate').innerHTML = Math.round(pBar.value * 100) + "%";
-}
-function checkAssets(assets, assetsCount, msg) {
-	// log to the HTML page DEBUG: strings only
-	// console.log('assets:', assets, 'assetsCount:', assetsCount, msg);
-	console.log(scenario + ': checkAssets(): Loaded: ' + msg + '; ' + assetsCount + ' of ' + assets);
-
-	// display progress
-	assetProgress(assetsCount, assets);
-
-	if (assets == assetsCount) {
-		// function in mow_template: shows overlay button; btn click calls this.startScenario
-		showOverlay();
-		init();
-	}
-}
-
 // Creates and shows (DEBUG) Banner plane: max area for text placement available in the scene
 function createBanner(visible) {
 	// avoid recurrent calls

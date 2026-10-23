@@ -1,3 +1,8 @@
+// ### Note my stupid frameework (easy to loose the track):
+// Scenario must call MoW_templates::checkAssets(assets, assetsCount, msg)
+// which calls MoW_templates::showOverlay(message), which creates overlay and startButton
+// Otherwise scenario must call showOverlay() directly.
+
 var scenario = "honey-bees";
 var recordingDisabled = false;
 var recordingChecked = false;

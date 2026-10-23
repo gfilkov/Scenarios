@@ -16,13 +16,13 @@ function onresize() {
         gameWidth = size.W;
         gameHeight = size.H;
 
-        if (typeof container !== 'undefined') {
+        if (container) {
             container.style.setProperty('width', gameWidth + 'px', 'important');
             container.style.setProperty('height', gameHeight + 'px', 'important');
         }
 
         //.error happens in Azure (depends on scripts loading order?)
-        if (typeof renderer !== 'undefined') {
+        if (renderer) {
             renderer.setSize(gameWidth, gameHeight);
             console.log(`renderer: ${renderer}`);
         }
@@ -437,6 +437,7 @@ function startRecording() {
         setMobileRecorder(recorder);
 
         recorder.startRTC();
+        showRecIndicator();
         console.log("scenario_three_template::startRecording(): recorder.startRTC()");
     }
     else {
@@ -455,6 +456,8 @@ function startCallback(event) {
 function recordedCallback(recUrl) {
     console.log("scenario_three_template::recordedCallback()");
     console.log(recUrl);
+
+    hideRecIndicator();
 
     previewSrc = recUrl;
 }
@@ -654,6 +657,8 @@ Save recording to view/convert/share later`;
 ////////////////// OVERLAY
 // Create container DIV, create canvas and overlayCanvas inside container, set attributes to container to center properly on the screen.
 function createCanvases() {
+    console.log("scenario_three_template::createCanvases()");
+
     // set renderer ratio to 16:9
     let size = setVideoSize(16, 9); // scenario_three_template
 

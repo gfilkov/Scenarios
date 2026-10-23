@@ -22,32 +22,6 @@ if (!window.JSDEBUG) {
     }
 }
 
-// DEBUG JSDEBUG
-// uncommented:
-//  commented and param is
-// none
-
-
-// none:        null
-// &debug:      ""
-// &debug=true: "true"
-// &DEBUG=true: null
-
-// So:
-// JS: undefined, null, 
-
-///// DEBUG: test myvar?
-// let x0;  // undefined
-let x1 = null;
-let x2 = "";
-let x3 = "false";   // string, not boolean
-
-//console.log(x0?.toString());  // error
-console.log(x1?.toString());
-console.log(x2?.toString());
-console.log(x3?.toString());
-/////
-
 const jquery = "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js";
 
 // scripts from this array are loaded selectively for each scenario in loadByName()
@@ -59,7 +33,7 @@ const scripts = [
     , "https://cdn.jsdelivr.net/npm/three@0.132.2/src/Three.js|m"   // module
 
     // special version for Marienbad, otherwise it looks poor.
-    , "js/three.js"
+    , "js/three/legacy/three.js"
 
     , "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"
 
@@ -161,7 +135,10 @@ switch (gfl_scene) {
         moduleNames.push("AnimationMixer", "AnimationAction", "AnimationObjectGroup");
         break;
     case "marienbad":
-        scriptNames.push("js/three.js", "OrbitControls_qiao", "gltfloader", "detector", "mow_gemShader");
+        // # Does not work for gems!
+        // scriptNames.push("three.js", "OrbitControls_qiao", "gltfloader", "detector", "mow_gemShader");
+        scriptNames.push("legacy/three.js", "OrbitControls_qiao", "gltfloader", "detector", "mow_gemShader");
+
         playScript = "kolonada";
         break;
     case "shells":
@@ -169,7 +146,7 @@ switch (gfl_scene) {
         playScript = "beach";
         break;
     case "space":
-        scriptNames.push("js/three.js", "detector", "CopyShader", "ShaderPass", "EffectComposer", "MaskPass", "RenderPass", "DigitalGlitch", "GlitchPass");
+        scriptNames.push("legacy/three.js", "detector", "CopyShader", "ShaderPass", "EffectComposer", "MaskPass", "RenderPass", "DigitalGlitch", "GlitchPass");
         break;
     case "train":
         scriptNames.push("three", "sprite", "mowsprite");

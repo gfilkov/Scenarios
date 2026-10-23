@@ -128,24 +128,37 @@ function assetProgress(progress, total) {
 	pBar.value = progress / total;
 	document.getElementById('progress-rate').innerHTML = Math.round(pBar.value * 100) + "%";
 }
-function checkAssets(assets, assetsCount, msg) {
+
+// poor man assets ready/showOverlay encapsulation:
+let overlayMessage;	// set by scenario or send as param to checkAssets()
+function checkAssets(assets, assetsCount, msg, ovlMessage) {
 	console.log('MoW_templates: checkAssets(): Loaded: ' + msg + '; ' + assetsCount + ' of ' + assets);
+
+	// remember overlayMessage if it was provided at least in single call
+	if (ovlMessage)
+		overlayMessage = ovlMessage;	// overlayMessage sent at single/last call to checkAssets()
 
 	// display progress
 	assetProgress(assetsCount, assets);
 
 	if (assets == assetsCount) {
 		// function in mow_template: shows overlay button; btn click calls this.startScenario
-		showOverlay(/* overlayMessage */);
+		showOverlay(overlayMessage);
 		// init();
 		requestAnimationFrame(init);	// schedule for the next frame
 	}
 }
 
 // This function is called from initAssets() in scenario script.
-// It displays default overlay message unless caller (like assetLoader) has property 'message' set.
+// It displays default overlay message unless caller (like assetLoader) has property 'ovlMessage' set.
 function showOverlay(message) {
 	console.log("MoW_template::showOverlay()");
+
+	// for some stupid elusive reason it gets called more than once, creating a mess. Patch:
+	if (document.getElementById('overlay')) {
+		console.log("Element id 'overlay' already exists. Skipping");
+		return;
+	}
 
 	// remove progress div
 	let progress = document.getElementById( 'progress' );

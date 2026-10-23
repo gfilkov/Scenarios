@@ -70,10 +70,11 @@ function getScenarioParams() {
 // gets raster from API (new format, centered raster)
 // NB: global object rasterParams (above) should be ready now. Scene and Text filled with URL params, others null.
 // If scenario uses any other params, it should set rasterParams properties accordingly before calling getRaster()
-async function getRaster(callback) {
+// optional 'slogan' param - to override rasterParams.taxt for mulri-slogan scenarios.
+async function getRaster(callback, slogan) {
 	console.log("ShowRaster::getRaster()");
 	
-	fetchRasterFromApiAsyncNew({ api: apiUrl, param: rasterParams, callback: callback }).then(result => {
+	fetchRasterFromApiAsyncNew({ api: apiUrl, param: rasterParams, callback: callback, slogan }).then(result => {
 
 		// DEBUG
 		console.log("=== RAW RESULT ===");
@@ -92,14 +93,19 @@ async function getRaster(callback) {
 	});
 }
 
-async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: callback }) {
+async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: callback, slogan }) {
 		console.log(`fetchRasterFromApiAsyncNew(${api})`);
-		
-	if (!param.text)
+
+	// optional 'slogan' param - to override rasterParams.text for mulri-slogan scenarios.
+	let text = param.text;
+	if (slogan)
+		text = slogan;
+
+	if (!text)
 		throw ('Parameter Text is required');
 	
 	//const apiUrl = 'http://localhost:7031/api/TextToCoords';
-	let url = `${api}?text=${encodeURIComponent(param.text)}`;
+	let url = `${api}?text=${encodeURIComponent(text)}`;
 	
 	if(param.align)
 		url += '&align=' + param.align;
@@ -138,7 +144,7 @@ async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: ca
 
 
 // DEBUG
-var rad = 4;
+const rad = 4;
 
 // Init raster on (Canvas 2D) context
 // getRaster() must be called before. Check if it is already defined.
@@ -595,6 +601,9 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 			pnt.X = rp.X * bannerStep / raster.Statistics.Step;
 			pnt.Y = rp.Y * bannerStep / raster.Statistics.Step;
 
+			// position in Banner
+			pnt.X += rcBanner.center.x;
+			pnt.Y += rcBanner.center.y;
 			subarray.push(pnt);
 		}
 		mapped.push(subarray);

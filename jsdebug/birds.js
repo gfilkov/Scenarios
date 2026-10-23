@@ -136,7 +136,7 @@ let focusX, focusY;	// focus point (infinity point the flock flies to)
 
 var raster;	// to be assigned in rasterReady()
 // NB: uses global rasterParams object (ShowRaster.js). Set other properties if/as needed.
-getRaster();	// ShowRaster.js => rasterReady()
+getRaster(rasterReady);
 
 initAssets();
 

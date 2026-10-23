@@ -140,6 +140,16 @@ function stopShow() {
     }
     showStopped = true;
 
+    // NEW Scenarios urls:
+    // http://localhost/ScenariosFunkAPI/scenarios.html ->
+    // http://localhost/ScenariosFunkAPI/Play.html?scene=birds
+
+    const sceneUrl = window.location.href.split("?")[0];    // http://localhost/ScenariosFunkAPI/Play.html
+    const scenariosUrl = sceneUrl.replace("Play", "scenarios");
+    window.location.assign(scenariosUrl);
+
+    /////
+    /*
     var srcpage = getUrlVars()["srcpage"];
 
     /////// source of 'security breach' errors: too many calls. Simplify:
@@ -150,6 +160,7 @@ function stopShow() {
     let pos = window.location.href.indexOf('/play') + 1;
     let scenarios = window.location.href.substring(0, pos) + 'scenarios';
     window.location.assign(scenarios);
+    */
 }
 
 // generate text pixels array: TBD; copied from F:\MyProjects\Azure\WebSites\WebSite1\js\text_anim_birds.js
