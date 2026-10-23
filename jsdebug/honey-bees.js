@@ -19,7 +19,7 @@ const swarmSoundSrc = 'sounds/beehive-65477.mp3';
 // Loaders
 const pathpot = 'models/pot_scan_01.glb';
 const pathtxt = 'textures/honey1.png';
-const pathbee = 'models/bee.glb';
+const pathbee = 'models/Bee.glb';
 
 let beescale = 0.007;
 let beescalefactor = 3;	// up/down animation scale is much smaller!?
@@ -1232,7 +1232,7 @@ function stampDecal() {
 function loadTable() {
 	// Load OBJ file
 	const objLoader = new THREE.OBJLoader();
-	objLoader.load('models/table/table.obj', (object) => {
+	objLoader.load('models/table/Table.obj', (object) => {
 		 // 2 child meshes: 'table' and 'tablecloth'
 		object.traverse((child) => {
 			if (child.isMesh) {
