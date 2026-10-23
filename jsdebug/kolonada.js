@@ -30,7 +30,7 @@ const audioSrc = 'sounds/JEALOUSY_TANGO_clip.mp3';
 const audio = new THREE.Audio(listener);
 
 var textureReady = false;   // set by init(): THREE.CubeTextureLoader()
-const cubeTexturePath = 'textures/cube/Kolonada/';
+const cubeTexturePath = 'textures/cube/kolonada/';
 let reflectionCube
 
 const fontLoader = new THREE.FontLoader();
