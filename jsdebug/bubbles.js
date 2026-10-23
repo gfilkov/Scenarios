@@ -307,9 +307,9 @@ let canMaterial;
 // Loaders
 const gltfloader = new THREE.GLTFLoader();
 const textureLoader = new THREE.TextureLoader();
-const canpath = 'Models/cola-can/cola-can.glb';
-const texturemetalpath = 'Models/cola-can/Textures/cola_can_metallic.png';
-const textureopenpath = 'Models/cola-can/Textures/cola_can_open.png';
+const canpath = 'models/cola-can/cola-can.glb';
+const texturemetalpath = 'models/cola-can/Textures/cola_can_metallic.png';
+const textureopenpath = 'models/cola-can/Textures/cola_can_open.png';
 function loadColaCan() {
 	gltfloader.load(
 		canpath,
