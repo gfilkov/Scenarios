@@ -226,7 +226,7 @@ function initAssets() {
 	gltfloader = new THREE.GLTFLoader();
 
 	gltfloader.load(
-		'3D-models/capsule.glb',
+		'3D-models/Capsule.glb',
 		(gltf) => {
 			let model = gltf.scene;
 			let scl = 1 / 64;
@@ -236,7 +236,7 @@ function initAssets() {
 			capsule = model;
 
 			assetsCount++;
-			checkAssets(assets, assetsCount, 'capsule.glb');
+			checkAssets(assets, assetsCount, 'Capsule.glb');
 		},
 		(xhr) => {
 			//console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
