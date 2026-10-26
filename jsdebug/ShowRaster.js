@@ -70,7 +70,7 @@ function getScenarioParams() {
 // gets raster from API (new format, centered raster)
 // NB: global object rasterParams (above) should be ready now. Scene and Text filled with URL params, others null.
 // If scenario uses any other params, it should set rasterParams properties accordingly before calling getRaster()
-// optional 'slogan' param - to override rasterParams.taxt for mulri-slogan scenarios.
+// optional 'slogan' param - to override rasterParams.text for multi-slogan scenarios.
 async function getRaster(callback, slogan) {
 	console.log("ShowRaster::getRaster()");
 	
@@ -93,6 +93,7 @@ async function getRaster(callback, slogan) {
 	});
 }
 
+// get raster using param object; optional slogan overrides param.slogan
 async function fetchRasterFromApiAsyncNew({ api: api, param: param, callback: callback, slogan }) {
 		console.log(`fetchRasterFromApiAsyncNew(${api})`);
 
@@ -203,68 +204,75 @@ function InitRaster(ctx, rcInput, show = false) {
 	}
 }
 
-// maps global raster to global rcBanner
+// re-maps global raster to global rcBanner
 function mapRaster() {
 	console.log("ShowRaster::mapRaster()");
 
-	for (var i = 0; i < rasterSize; i++) {
-		for (var j = 0; j < raster[i].length; j++) {
-			raster[i][j].X *= scaleX;
-			raster[i][j].X += rcBanner.left;
+	//callback({ X: pnt.X, Y: pnt.Y, iChar: i, iPoint: j, iLine: pnt.LineIndex });
+	forEachRasterPoint(raster, (pnt) => {
+		let i = pnt.iChar;
+		let j = pnt.iPoint;
 
-			raster[i][j].Y *= scaleY;
-			raster[i][j].Y += rcBanner.top;
-		}
-	}
+		raster.Characters[i].Coordinates[j].X *= scaleX;
+		raster.Characters[i].Coordinates[j].X += rcBanner.center.x;
+
+		raster.Characters[i].Coordinates[j].Y *= scaleY;
+		raster.Characters[i].Coordinates[j].Y += rcBanner.center.y;
+	});
 }
 
-// returns 2-dim array of char centers
+// returns array of char centers objects.
 function getCharCenters(raster) {
 	console.log("ShowRaster::getCharCenters()");
 
-	var centers = new Array(rasterSize);
+	const nChars = raster.Characters.length;
+	const centers = new Array();
 	
-	for (var i = 0; i < rasterSize; i++)
+	for (let i = 0; i < nChars; i++)
 	{
-		var x = 0;
-		var y = 0;
-		var len = raster[i].length;
-		for(var j = 0; j < len; j++)
+		let x = 0;
+		let y = 0;
+		const nPoints = raster.Characters[i].Coordinates.length;
+		for (let j = 0; j < nPoints; j++)
 		{
-			x += raster[i][j].X;
-			y += raster[i][j].Y;
+			x += raster.Characters[i].Coordinates[j].X;
+			y += raster.Characters[i].Coordinates[j].Y;
 		}
-		x /= len;
-		y /= len;
+		x /= nPoints;
+		y /= nPoints;
 		
-		centers[i] = new Array(2);
-		centers[i][0] = x;
-		centers[i][1] = y;
+		let pnt = new Object();
+		pnt.X = x;
+		pnt.Y = y;
+		centers.push(pnt);
 	}
 	
 	return centers;
 }
 
-// draw mapped raster
+// DEBUG
+const dbgStep = 8;
+
+// draw mapped raster (scenario musst call InitRaster() -> MapRaster(): raster is mapped to rcScaled)
 function drawRaster(ctx, raster, r, color) {
 	console.log("ShowRaster::drawRaster()");
 
-	for (var i = 0; i < rasterSize; i++)
-	{
-		for(var j = 0; j < raster[i].length; j++)
-		{
-			//putMark(ctx, raster[i][j].X, raster[i][j].Y, r, color);
-			putCross(ctx, raster[i][j].X, raster[i][j].Y, r, color);
-			//putCross(ctx, raster[i][j].X, raster[i][j].Y, r, color, i, j);
-		}
-	}
+	forEachRasterPoint(raster, (pnt) => {
+		//const X0 = ctx.canvas.width / 2;
+		//const Y0 = ctx.canvas.height / 2;
+		//putCross(ctx, X0 + pnt.X * dbgStep, Y0 + pnt.Y * dbgStep, r, color);
+		putCross(ctx, pnt.X, pnt.Y, r, color);
+	});
 }
 
 function drawCharCenters(ctx, charCenters, r, color) {
+	//const X0 = ctx.canvas.width / 2;
+	//const Y0 = ctx.canvas.height / 2;
+
 	for(var i = 0; i < charCenters.length; i++)
 	{
-		//putMark(ctx, charCenters[i][0], charCenters[i][1], r, color);
-		putCross(ctx, charCenters[i][0], charCenters[i][1], r, color);
+		putMark(ctx, charCenters[i].X, charCenters[i].Y, r, color);
+		// putCross(ctx, X0 + charCenters[i].X * dbgStep, Y0 + charCenters[i].Y * dbgStep, r, color);
 	}
 }
 

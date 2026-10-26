@@ -93,6 +93,7 @@ if (iOS()) {
 // NB: uses global rasterParams object (ShowRaster.js). Set other properties if/as needed.
 rasterParams.fontFamily = 'LED';
 
+// optional 'slogan' param - to override rasterParams.text for multi-slogan scenarios.
 getRaster(rasterReady, slogans[iloop]);
 
 // callback

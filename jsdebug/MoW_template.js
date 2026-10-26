@@ -144,6 +144,10 @@ function checkAssets(assets, assetsCount, msg, ovlMessage) {
 	if (assets == assetsCount) {
 		// function in mow_template: shows overlay button; btn click calls this.startScenario
 		showOverlay(overlayMessage);
+
+		if (!(typeof init === "function"))
+			console.warn("Client script must declare init()!");
+
 		// init();
 		requestAnimationFrame(init);	// schedule for the next frame
 	}
