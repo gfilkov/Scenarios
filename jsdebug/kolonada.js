@@ -412,13 +412,13 @@ function initAllCustom() {
     return ready;
 }
 function render(timestamp) {
-    var timer = Date.now() * 0.00025;
+    let tm = Date.now() * 0.00025;
 
     if (!entryCheck())
         return;
 
     // check exit condition - maxTurns (passing ove 0)
-    var angle = controls.getAzimuthalAngle();
+    let angle = controls.getAzimuthalAngle();
 
     if (prevangle >= 0 && angle <= 0) { nTurns++; }
     if (nTurns > maxTurns)
@@ -436,14 +436,14 @@ function render(timestamp) {
     // to avoid recording of blur screen the recorder is set to pause initially.
     resumeRecord();
 
-    //camera.position.x = Math.cos( timer ) * 800;
-    //camera.position.z = Math.sin( timer ) * 800;
+    //camera.position.x = Math.cos( tm ) * 800;
+    //camera.position.z = Math.sin( tm ) * 800;
     controls.update();
 
     camera.lookAt(scene.position);
-    particleLight.position.x = Math.sin(timer * 7) * 300;
-    particleLight.position.y = Math.cos(timer * 5) * 400;
-    particleLight.position.z = Math.cos(timer * 3) * 300;
+    particleLight.position.x = Math.sin(tm * 7) * 300;
+    particleLight.position.y = Math.cos(tm * 5) * 400;
+    particleLight.position.z = Math.cos(tm * 3) * 300;
 
     renderer.render(scene, camera);
 }

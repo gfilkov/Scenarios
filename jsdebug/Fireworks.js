@@ -878,6 +878,7 @@ function fireworkPaint() {
 }
 
 // Launch fireballs for specified char index from charcenter to char points
+const fireBallTime = 4;	// secs - time to reach target
 function launchFireballs(i) {
 	// sprite.js: lastTicksElapsed is the number of ticks elapsed during two runs of the paint function.
 	// If performances are good the value should be 1. More than 1 - performance is slow.
@@ -898,8 +899,11 @@ function launchFireballs(i) {
 		let d = getDistanceGF(sp, raster.Characters[i].Coordinates[j].X, raster.Characters[i].Coordinates[j].Y);
 
 		// init speed is proportional to distance
-		sp.xv = d / rcBanner.w * 2 * random(0.9, 1.1);
-		// sp.xv = d / rcBanner.w * 2 * random(0.9, 1.1) * delta;
+		// sp.xv = d / rcBanner.w * 2 * random(0.9, 1.1);			// 0.14
+		// sp.xv = d / fireBallTime * 100 * random(0.9, 1.1);
+		// let testV = d / fireBallTime;	// 19 ??!! Apparently sp.xv length measure is very different from d = getDistanceGF()
+		// d: 76
+		sp.xv = d / fireBallTime / 30 * random(0.9, 1.1);
 
 		let dx = raster.Characters[i].Coordinates[j].X - bangCenters[i].X;
 		let dy = raster.Characters[i].Coordinates[j].Y - bangCenters[i].Y;
@@ -923,6 +927,9 @@ function launchFireballs(i) {
 
 // fireball behavior
 // ### names mingle here: sp fireball I keep until home, than FireBall class instance is created 
+let firstHomeTime = 0;	// gameTime when the very 1st firecracker reached target (raster point)
+const bangDelta = 2;	// max time dispersion from firstHomeTime to last one.
+// Use firstHomeTime, bangDelta to adjust firecracker speed: TBD (sp.xv value is not clear at all!? per sec, per frame?)
 function updateFireball(sp) {
 	let i = sp.mowi;
 	let j = sp.mowj;
@@ -960,6 +967,8 @@ function updateFireball(sp) {
 			audioBang.startTime = 0.0;
 
 			audioBang.play();
+
+			firstHomeTime = elapsedTime;
 		}
 	}
 	else {
@@ -1077,10 +1086,20 @@ function initAllCustom() {
 	return ready;
 }
 
+let elapsedTime = 0;
 // sprite.js version of render() - called on each cycle.
-let timer = new Timer();  // THREE.Timer
 function paint() {
-	const delta = timer.getDelta();	// ### pass down to all functions to adjust speed/synchronize objects
+	// THREE.Timer created, and updated in scenario_three_templates::animate(timestamp) -> render(timestamp)
+	timer.update();
+	let delta = timer.getDelta();	// Secs. ### pass down to all functions to adjust speed/synchronize objects
+	// console.log(`delta: ${delta}`);
+
+	// debug hack
+	// on debug stop delta grows huge, time runs out, game over on resume. Assuming frame rate 1/30:
+	if (delta > 0.5) {
+		delta = 0.03;
+	}
+	elapsedTime += delta;	// game time (secs), debug stops excluded.
 
 	// IMPORTANT: calls exitCheck(), resumeRecord()
 	if (!entryCheck())
