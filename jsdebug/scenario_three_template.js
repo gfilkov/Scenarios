@@ -9,6 +9,9 @@
 window.addEventListener("resize", onresize, false);	// useCapture = false
 
 function onresize() {
+    if (container === undefined)
+        return;
+
     // expected for all my scripts:
     if (gameWidth !== 'undefined') {
         let size = setVideoSize(16, 9); // scenario_three_template
