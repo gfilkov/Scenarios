@@ -162,9 +162,6 @@ function centerCanvas() {
 // Re-center the canvas on window resize
 window.addEventListener('resize', centerCanvas);
 
-
-
-
 //#region RASTER
 // <scenario> calls ShowRaster::getRaster() => callback: <scenario>::RasterReady()
 // ShowRaster::rasterParams shoul be ready here.
@@ -219,7 +216,6 @@ function rasterReady(result) {
 	}
 }
 //#endregion
-
 
 //#region ASSETS
 // array for Scene.loadImages()

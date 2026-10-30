@@ -392,6 +392,15 @@ function putCross(ctx, x, y, r, color) {
 	// ctx.fillText(i + ',' + j, x, y);
 }
 
+// rectangle on 2D context
+function drawRect(ctx, rc, color) {
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.rect(rc.left, rc.top, rc.w, rc.h);
+	ctx.stroke();
+}
+
 // GF/mow helpers
 function Point(x, y) {
 	this.x = x;
@@ -506,7 +515,7 @@ function createBanner(left, right, top, bottom, trinket /* trinket to clone */, 
 }
 
 //// move to ShowRaster(?)
-// Globals: raster, rasterSize, trinketscale (out; in: 1)
+// Globals: raster, rasterSize, bannerStep; rcBanner, rcYext, rcScaled - to be accessible outside of this function.
 // params: rcBanner, itemSizeMax, itemSizeMin, density (1: step == item diameter. 1.5: diameter == 1.5*step)
 // workflow:
 // - calc rcText: max rect contained in rcBanner
@@ -514,15 +523,31 @@ function createBanner(left, right, top, bottom, trinket /* trinket to clone */, 
 // - calc target item diameter = density*step
 // - if targetItemDiam > itemSizeMax: scale down all: itemScale, step, rcText
 // - if targetItemDiam < itemSizeMin: scale all up, cut overflow (do not place items beyond rcBanner)
-// - set external trinketScale
+// - set external mappedRasterStep
 // - return target map array
-let trinketscale = 1;	// trinket scale factor
+// ### target map array is great, but step (size of trinkets) is very important too.
+// Ugly patch: use bannerStep right after call to mapRasterSizewise()
+
 function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	console.log("ShowRaster.mapRasterSizewise()");
 
 	//// DEBUG
 	console.log("rcBanner:", rcBanner, "itemSizeMax:", itemSizeMax, "itemSizeMin:", itemSizeMin, "density:", density);
 	////
+
+	// NB: sample raster 3/2
+	// +-+-+
+	// +-+-+
+	// 3 horizontal x 2 vertical points, size: 2x1
+	//
+	// Number of horizontal steps:
+	// nXstep = rasterSize.Width / raster.Statistics.Step
+	// Number of horizontal points:
+	// nXpt = nXstep + 1
+	// bannerStep = rcBanner.w / nXstep
+
+	// NB: density is client's business. This function is about mapped points.
+	// Density plays when rcText needs to be rescaled to satisfy for density.
 
 	// - calc rcText: max rect contained in rcBanner
 	let rasterRatio = rasterSize.Height / rasterSize.Width;
@@ -552,15 +577,12 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 
 	rcText = new Rectangle(textL, textR, textT, textB);
 
-	// - calc step (between target points)
-	// bannerStep = rcText.w / rasterSize.Width;	// raster step not accounted for, too sparce
-	bannerStep = rcText.w / rasterSize.Width / raster.Statistics.Step;
+	// Number of horizontal steps:
+	let nXstep = rasterSize.Width / raster.Statistics.Step;
 
-	// - calc target item diameter = density*step
-	let targetD = density * bannerStep;
+	bannerStep = rcText.w / nXstep;	// note name collision: global bannerStep is actual rcText (rcScaled) step.
 
-	//let left = textL;	// to be used for target points calculation. May be rescaled/recalculated.
-	//let top = textT;
+	let targetD = density * bannerStep;	// // - target trinket diameter
 
 	//// DEBUG
 	console.log("rcText:", rcText, "bannerStep:", bannerStep, "targetD:", targetD);
@@ -585,12 +607,8 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	if (rescaled) {
 		bannerStep = targetD / density;
 
-		// recon from center. Actual scaled text size:
-		//bannerResizedW = rasterSize.Width * bannerStep;		// global vars for client script to check
-		//bannerResizedH = rasterSize.Height * bannerStep;
-
-		bannerResizedW = rasterSize.Width * bannerStep / raster.Statistics.Step;		// global vars for client script to check
-		bannerResizedH = rasterSize.Height * bannerStep / raster.Statistics.Step;
+		bannerResizedW = bannerStep * nXstep;		// global vars for client script to check
+		bannerResizedH = rasterSize.Height / rasterSize.Width * bannerResizedW;
 
 		//// DEBUG
 		console.log("Rescaled! bannerStep:", bannerStep, "targetD:", targetD, "targetScale:", targetScale, "quad:", bannerResizedW, "x", bannerResizedH);
@@ -600,7 +618,6 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	var mapped = [];
 
 	// rpoint: raster.Characters[i].Coordinates[j]
-
 	for (i = 0; i < raster.Characters.length; i++) {
 		var subarray = [];
 		for (j = 0; j < raster.Characters[i].Coordinates.length; j++) {
@@ -608,6 +625,8 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 			let pnt = new Object();
 			pnt.X = rp.X * bannerStep / raster.Statistics.Step;
 			pnt.Y = rp.Y * bannerStep / raster.Statistics.Step;
+			//pnt.X = (rp.X - 0.5) * bannerStep / raster.Statistics.Step;
+			//pnt.Y = (rp.Y - 0.5) * bannerStep / raster.Statistics.Step;
 
 			// position in Banner
 			pnt.X += rcBanner.center.x;
@@ -620,7 +639,9 @@ function mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1) {
 	return mapped;
 }
 
-///////////// ### TEST
+
+
+
 // Callback param: rpoint: raster.Characters[i].Coordinates[j]
 function forEachRasterPoint(raster, callback) {
 	for (let i = 0; i < raster.Characters.length; i++) {

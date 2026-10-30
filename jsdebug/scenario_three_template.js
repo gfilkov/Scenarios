@@ -158,19 +158,21 @@ function loopStop() {
 // init here all common objects; for scenario-specific call initAllCustom()
 // WTF!!! "Aw, snap!" idiotic message may be caused by the 'endless' loop. Add check:
 let ntries = 64;
+let msg = "";
 function initAll() {
     console.log("scenario_three_template::initAll()");
 
     let ready = true;
 
+    if (ntries-- < 0) {
+        alert(`Exiting: ${msg}`);
+        stopShow();
+    }
+
     if (!isRasterReady) {
         isRasterReady = rasterCount > 0;
         ready = false;
-
-        if (ntries-- < 0) {
-            alert('No raster! Exiting');
-            stopShow();
-        }
+        msg = 'No raster!';
     }
 
     // recording
@@ -180,14 +182,7 @@ function initAll() {
         // main canvas is the must for recorder.
         // If user does not need main canvas, it has to be set to null.
 
-        //if (null !== recorder) {
-        //    if (null === recorder.canvas || undefined !== recorder.canvas) {
-        //        // main canvas was set; was set to null if void
-        //        if (!recorder.started) {
-        //            startRecording();
-        //        }
-        //    }
-        //}
+        msg = 'No recorder!';
 
         // another attempt to start recording:
         // startRecording() calls < scenario >:: sceneReady()
@@ -199,6 +194,8 @@ function initAll() {
     // scenario-specific: let it know if everything is ready here.
     if (!initAllCustom(ready)) {
         ready = false;
+
+        msg = 'initAllCustom() is not ready!';
     }
 
     return ready;

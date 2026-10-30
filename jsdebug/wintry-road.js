@@ -58,7 +58,7 @@ const flakesCount = 512;	// 256;
 const speed = 20;
 const initialDistance = 30;
 let targetScaleFactor = 0.4 / 1685; //0.25 / 1685;	// empiric test on PC
-// let targetScale = 1;	// global
+let targetFlakeScale = 1;	// Scale of the flake on the windshield. Not using global targetScale here.
 let maxScale = 1;	// to be calculated as gameWidth factor.
 
 const blowFactor = 10;	// flake blow away probability factor
@@ -70,31 +70,69 @@ let cyclesCount = 0;
 
 //#region BEFORE PLAY BTN
 
+let showMessage = false;	// user message
+
+
+
+//#region RASTER
+// <scenario> calls ShowRaster::getRaster() => callback: <scenario>::RasterReady()
+// ShowRaster::rasterParams shoul be ready here.
+
 // multi-slogan functionality
 let iloop = 0;
 let nLoops = 2;	// 2;
 let loopOver = false;
 
-let showMessage = false;	// user message
-
-let myparams = getScenarioParams();
-let myword = myparams.word;
-if (null === myword || myword.length == 0)
-	myword = scenario;
-
-let myMessage = myparams.message;	// user message
-
-//var urlVars = getUrlVars();    // mow.js
-//var slogans = urlVars.text.split('||');	// defined as 'word' in ShowRaster.js
-var slogans = myword.split('||');
-
+const slogans = rasterParams.text.split('||');
 if (slogans.length > nLoops)
 	nLoops = slogans.length;
 
-// getRaster();	// ShowRaster.js => rasterReady() callback
-raster = null;
-let slogan = slogans[iloop];
-getRasterFromApi(slogans[iloop], 'led1');
+// NB: uses global rasterParams object (ShowRaster.js). Set other properties if/as needed.
+//rasterParams.fontFamily = 'LED';
+
+// optional 'slogan' param - to override rasterParams.text for multi-slogan scenarios.
+getRaster(rasterReady, slogans[iloop]);
+
+// callback
+// strange thing happening... rasterReady() called more than once, breaking checkAssets() logic.
+// Using safety catch myAssetsCount
+
+let myAssetsCount = -1;
+function rasterReady(result) {
+	console.log("rasterReady('", result.Text, "')");
+
+	if (myAssetsCount > 0) {
+		console.warn("NB: extra call of rasterReady('", result.Text, "'); skipping.");
+		return;
+	}
+
+	if (result.Success)
+		isRasterReady = true;
+
+	// raster = result;	// use global raster from ShowRaster
+	rasterCount = getRasterCount(result);   // ShowRaster.js
+
+	assetsCount++;
+	checkAssets(assets, assetsCount, 'raster');
+
+	myAssetsCount = assetsCount;
+
+	// multi-slogan support:
+	if (iloop > 0) {
+		// repeat
+		console.log(`Loop: ${iloop} Slogan: ${slogans[iloop]}`);
+
+		// for some absolutely misterious reason raster (defined in ShowRaster) stays unchanged from loop 0!?
+		raster = result;	// re-assign to be sure
+
+		nextLoop();
+	}
+}
+//#endregion
+
+
+
+
 
 //#region ASSETS
 // snowy-road-70.gif: 70% brightness version of snowy-road.gif
@@ -134,7 +172,14 @@ for (i = 0; i < 4; i++) {
 // clone - needed for scene.load()
 var imgsrcs = imgarray.map((x) => x);
 
-// MoW_template::window.onload() calls this.initAssets()
+//////
+// MoW_template::checkAssets() works well for THREE.JS scenarios.
+// Using ugly patch here: #1: raster; #2: assetsLoaded() - callback of AssetLoader2 - all other assets.
+const assets = 2;
+let assetsCount = 0;
+//////
+
+initAssets();
 function initAssets() {
 	console.log("initAssets()");
 
@@ -146,12 +191,18 @@ function initAssets() {
 	// add callback
 	assetLoader.load(createScene);
 }
+function assetsLoaded() {
+	console.log("assetsLoaded()");
+	// MoW_template:: checkAssets() -> init();showOverlay();
 
-function rasterReady() {
-	console.log("rasterReady('", slogan, "')");
+	assetsCount++;
+	checkAssets(assets, assetsCount, 'AssetLoader2');
+}
 
-	if (undefined != rasterSize)
-		isRasterReady = true;
+// MoW_template:: checkAssets() -> init(); showOverlay(); // checkAssets() calls when all assets ready
+function init() {
+	createScene();
+	// initAudio();
 }
 
 function createScene() {
@@ -203,7 +254,7 @@ function initScene() {
 
 	canvasbkg = $('canvas#sjs0-layerbkg')[0];
 
-	targetScale = targetScaleFactor * scene.w;
+	targetFlakeScale = targetScaleFactor * scene.w;
 
 	//#region DEBUG blue square
 	//let options = { layer: layermow, size: [32, 32], color: "#0000FF" };
@@ -354,19 +405,6 @@ function paint() {
 	dtime = (newTime - prevTime) / 1000;  // ms
 	prevTime = newTime;
 
-	//if (!initialized) {
-	//	if (cyclesCount++ > idleCycles) {
-	//		alert('Initialization timeout');
-	//		stopShow();
-	//		return;
-	//	}
-	//	else {
-	//		console.log("Init cycle", cyclesCount);
-	//		initialized = initAll();	// scenario_three_template; calls initAllCustom()
-	//		return;
-	//	}
-	//}
-
 	// start show
 	cycle.next(ticker.lastTicksElapsed);
 
@@ -376,14 +414,23 @@ function paint() {
 	wiperr.canvasUpdate(layermow);
 	wiperl.canvasUpdate(layermow);
 
-	//// DEBUG
-	//testsprite.canvasUpdate(layermow);
-	//putCross(layermow.ctx, testpos.x, testpos.y, 12, 'blue');	
-	////
+	/////////////// DEBUG
+	////testsprite.canvasUpdate(layermow);
+	//// draw banner and text rects
+	//if (rcBanner)
+	//	drawRect(layermow.ctx, rcBanner, 'blue');
+	//if (rcText)
+	//	drawRect(layermow.ctx, rcText, 'red');
+	//// show mapped raster
+	//trinkets.forEach((sp) => {
+	//	putMark(layermow.ctx, sp.x, sp.y, bannerStep/2, 'white');
+	//});
+	//////////////////
 
+	// show flakes
 	flakes.forEach(updateFlake);
 
-	// add visible trinkets
+	// trinkets (sticky snowflakes); banner formation.
 	updateTrinkets(newTime - startTime);
 
 	// wipe accumulated slogan
@@ -394,11 +441,6 @@ function paint() {
 
 	// game over condition
 	if (blownTrinketsCount >= trinkets.length) {
-		//console.log('Game Over by count:', blownTrinketsCount, trinkets.length);
-		//stopShow();
-
-		// sprite.js (at least this script) does not go to scenario_three_temolate::animate()
-		// call exitCheck() here.
 		loopOver = true;
 		checkLoop();	// check: last loop ? exit : nextLoop
 	}
@@ -411,7 +453,7 @@ function paint() {
 
 	// showMessage set in updateWipers()
 	if (showMessage) {
-		messageOnCanvas(canvascar, myMessage, { clear: false });
+		messageOnCanvas(canvascar, rasterParams.message, { clear: false });
 
 		// if gameOver was signalled in checkLoops, set wait time to show message better
 		if (0 == gameOver)
@@ -455,9 +497,9 @@ function nextLoop() {
 
 	// get new raster ASAP if there are more slogans: rasterReady()
 	if (slogans.length > 1 && iloop < slogans.length) {
-		raster = null;
-		slogan = slogans[iloop];
-		getRasterFromApi(slogan, 'led1');
+		console.log('Requested raster for slogans[', iloop, ']:', slogans[iloop]);
+		myAssetsCount = -1;	// reset getRaster extra loop safety catch
+		getRaster(rasterReady, slogans[iloop]);
 	}
 
 	resetTrinkets();
@@ -500,6 +542,10 @@ function initFlakes() {
 }
 
 // init array of trinkets - snowflakes that will be sticking to the windshield
+// using ShowRaster::mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1)
+// Trinkets size in fractions of scene.w (windshield width)
+const fmax = 0.05;
+const fmin = 0.0002;
 function initTrinkets() {
 	console.log('initTrinkets()');
 
@@ -514,68 +560,51 @@ function initTrinkets() {
 
 	trinkets = [];
 
-	maxScale = gameWidth / 24;	// safety catch for on-shield flakes
+	const wipery = carshieldH * scene.h / 100;
 
-	// size of banner trinket a little bit larger than target flake scale
-	let bannerScale = targetScale * 1.6;
+	const margX = scene.w * 0.05;	// windshield width
+	const margY = wipery * 0.1;	// windshield height
+	rcBanner = new Rectangle(margX, scene.w - margX, margY / 2, wipery - margY * 1.5);	// shift margY/2 up
+	const itemSizeMax = scene.w * fmax;
+	const itemSizeMin = scene.w * fmin;
+	const density = 1.4;
 
-	// target size
-	let trinketSize = flakesize * bannerScale;
+	// mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density = 1)
+	let mapped = mapRasterSizewise(rcBanner, itemSizeMax, itemSizeMin, density);
 
-	// banner size
-	let bannerWidth = trinketSize * rasterSize.Width;
-	let bannerHeight = trinketSize * rasterSize.Height;
-
-	// force banner to fit on windshield
-	let maxW = scene.w * 0.9;
-	let stepfactor = 1;
-	if (bannerWidth > maxW) {
-		stepfactor = maxW / bannerWidth;
-		bannerWidth = maxW;
-		bannerHeight *= stepfactor;
-	}
-
-//	let bannerTop = (pivotR.y - bannerHeight) / 2;	// 2nd loop exception
-
-	let wipery = carshieldH * scene.h / 100;
-	let bannerTop = (wipery - bannerHeight) / 2;
-	let bannerLeft = (scene.w - bannerWidth) / 2;
+	// var bannerStep was set in mapRasterSizewise()
 
 	// arc mapping
-	let R = scene.w * 3;	 1.5;
+	let R = scene.w * 3; 1.5;
 	let xc = scene.w / 2;
 
-	for (let i = 0; i < raster.length; i++) {
-		for (let j = 0; j < raster[i].length; j++) {
+	mapped.forEach((charr) => {
+		// char element
+		charr.forEach((pnt) => {
+			// pnt.X
+
 			// select random flake image
 			let idx = Math.floor(random(flakesidx, imgarray.length));
 			let angle = random(0, 6.28); // 2*pi
 
 			let sp = scene.Sprite(imgarray[idx].src, layermow);
-			// sp.opacity = 0.99;
+
 			sp.setOpacity(0);
-			sp.scale(bannerScale);
-			let x = bannerLeft + raster[i][j].X * trinketSize * stepfactor;
-			let y = bannerTop + raster[i][j].Y * trinketSize * stepfactor;
+			sp.scale(bannerStep * density / flakesize);
+			let x = pnt.X;
+			let y = pnt.Y;
 
-			let mapped = mapToArc(x - xc, y, R);
-			// this func distorts the word too much; find why. (rotation!)
-////			gfPosition({ sp: sp, x: mapped.x + xc, y: mapped.y, angle: angle });
+			let arched = mapToArc(x - xc, y, R);
+			sp.position(arched.x + xc, arched.y);
 
-			sp.position(mapped.x + xc, mapped.y);
 			sp.rotate(angle);
 			trinkets.push(sp);
-
-			// DEBUG
-			//let vectorr = new Vector(sp.x - pivotR.x, pivotR.y - sp.y);
-			//let angler = vectorr.toRadians();
-
-			//console.log('SP: ' + sp.x + ', ' + sp.y + ' R. Bearing: ' + angler + ' = ' + angler / Math.PI * 180);
-		}
-	}
+		});
+	});
 
 	trinkets = shuffle(trinkets);
 }
+
 
 // map point to arc. y: 0 at the top of banner, grows down. x: 0 at the center of the banner.
 function mapToArc(x, y, R) {
@@ -593,7 +622,7 @@ function resetFlake(sp) {
 	let y = random(rcOrigin.top, rcOrigin.bottom) * layerbkg.h / 100;
 
 	sp.opacity = 0.99;	// WTF!? scale does not work without that.
-	sp.scale(targetScale / 8);
+	sp.scale(targetFlakeScale / 8);
 
 	sp['onshield'] = false;
 	sp['initialpos'] = new Point(x, y);
@@ -650,11 +679,7 @@ function updateFlake(sp) {
 	sp.applyVelocity();
 
 	if (sp.onshield) {
-		// console.log('updating onshield: sp.xv:' + sp.xv + 'sp.yv:' + sp.yv);
-		//sp.setXScale(targetScale);
-		//sp.setYScale(targetScale);
-
-		sp.scale(targetScale);
+		sp.scale(targetFlakeScale);
 
 		sp.canvasUpdate(layermow);
 		return;
@@ -667,7 +692,7 @@ function updateFlake(sp) {
 	sp.dist = sp.dist - speed * dtime;
 	// let tangent = 1 / (1 + sprite.distance);    // too exponential. Try instead:
 	let tangent = 2 / (2 + sp.dist);
-	let scale = tangent * targetScale;
+	let scale = tangent * targetFlakeScale;
 
 	//sp.setXScale(scale);
 	//sp.setYScale(scale)
@@ -739,7 +764,7 @@ function updateWipers(dt) {
 		da = -da;
 		allwiped = true;
 
-		if (null !== myMessage && iloop == nLoops - 1)
+		if (iloop == nLoops - 1)
 			showMessage = true;	// user message
 	}
 
